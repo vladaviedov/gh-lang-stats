@@ -1,0 +1,11 @@
+{
+  "name": "gh-stats",
+  "version": "0.1.0",
+  "description": "Github Stats",
+  "main": "index.js",
+  "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.22.0"
+  }
+}
