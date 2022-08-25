@@ -5,6 +5,7 @@
   "main": "index.js",
   "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "start": "node .",
     "lint": "eslint ."
