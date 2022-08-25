@@ -1,9 +1,8 @@
 import { Octokit } from "octokit"
 import { qlUserId, qlUserCommits } from "./graphql.js";
 
-const accessToken = ""
 const octokit = new Octokit({
-	auth: accessToken
+	auth: process.env.ACCESS_KEY
 });
 
 qlUserId(octokit).then(data => {
