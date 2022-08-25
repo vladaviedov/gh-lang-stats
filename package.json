@@ -5,7 +5,14 @@
   "main": "index.js",
   "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
   "license": "MIT",
+  "scripts": {
+    "start": "node .",
+    "lint": "eslint ."
+  },
   "devDependencies": {
     "eslint": "^8.22.0"
+  },
+  "dependencies": {
+    "octokit": "^2.0.7"
   }
 }
