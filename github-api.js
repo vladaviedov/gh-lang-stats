@@ -2,7 +2,7 @@ export const qlUserId = (client) => {
 	return client.graphql(`{
 		viewer { id }
 	}`);
-}
+};
 
 export const qlUserCommits = (client, id) => {
 	return client.graphql(`query ($id: ID) {
@@ -37,7 +37,7 @@ export const qlUserCommits = (client, id) => {
 			}
 		}
 	}`, { id: id });
-}
+};
 
 export const restCommitDetails = (client, owner, repo, ref) => {
 	return client.request("GET /repos/{owner}/{repo}/commits/{ref}", {
@@ -45,4 +45,4 @@ export const restCommitDetails = (client, owner, repo, ref) => {
 		repo: repo,
 		ref: ref 
 	});
-}
+};

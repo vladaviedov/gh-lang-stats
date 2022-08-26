@@ -19,7 +19,9 @@ qlUserId(octokit).then(response => {
 			const name = f.filename;
 			if (name.indexOf(".") < 0 && name[0] != ".") return;
 			const ext = name.split(".").pop();
-			languageMap.set(ext, languageMap.has(ext) ? languageMap.get(ext) + f.changes : f.changes);
+			languageMap.set(ext, languageMap.has(ext) ? 
+				languageMap.get(ext) + f.changes :
+				f.changes);
 		});
 	});
 	console.log(languageMap);
@@ -37,4 +39,4 @@ const getData = repos => {
 		});
 	});
 	return Promise.all(promises);
-}
+};
