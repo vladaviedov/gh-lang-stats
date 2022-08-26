@@ -1,11 +1,11 @@
-export const qlUserId = async (client) => {
-	return await client.graphql(`{
+export const qlUserId = (client) => {
+	return client.graphql(`{
 		viewer { id }
-	}`)
+	}`);
 }
 
-export const qlUserCommits = async (client, id) => {
-	return await client.graphql(`query ($id: ID) {
+export const qlUserCommits = (client, id) => {
+	return client.graphql(`query ($id: ID) {
 		viewer {
 			repositoriesContributedTo(
 				first: 100
@@ -14,7 +14,8 @@ export const qlUserCommits = async (client, id) => {
 			) {
 				totalCount
 				nodes {
-					nameWithOwner
+					name
+					owner { login }
 					defaultBranchRef {
 						target {
 							... on Commit {
@@ -35,5 +36,13 @@ export const qlUserCommits = async (client, id) => {
 				}
 			}
 		}
-	}`, { id: id })
+	}`, { id: id });
+}
+
+export const restCommitDetails = (client, owner, repo, ref) => {
+	return client.request("GET /repos/{owner}/{repo}/commits/{ref}", {
+		owner: owner,
+		repo: repo,
+		ref: ref 
+	});
 }
