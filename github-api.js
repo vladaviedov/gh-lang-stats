@@ -29,6 +29,12 @@ export const qlUserCommits = (client, id) => {
 							}
 						}
 					}
+					languages(first: 100) {
+						nodes {
+							name
+							color
+						}
+					}
 				}
 				pageInfo {
 					endCursor
