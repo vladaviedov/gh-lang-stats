@@ -1,4 +1,5 @@
 import { Octokit } from "octokit";
+import { analyzeData } from "./analyze.js";
 import { qlUserId, qlUserCommits, restCommitDetails } from "./github-api.js";
 
 const octokit = new Octokit({
@@ -15,9 +16,7 @@ qlUserId(octokit).then(response => {
 			commits: await repoCommits(r)
 		};
 	}));
-}).then(details => {
-	console.log(details);
-});
+}).then(analyzeData).then(console.log);
 
 const repoCommits = repo => {
 	const owner = repo.owner.login;
