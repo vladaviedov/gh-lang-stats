@@ -1,3 +1,6 @@
+import { get as httpsGet } from "https";
+import YAML from "yaml";
+
 export const qlUserId = (client) => {
 	return client.graphql(`{
 		viewer { id }
@@ -51,4 +54,18 @@ export const restCommitDetails = (client, owner, repo, ref) => {
 		repo: repo,
 		ref: ref 
 	});
+};
+
+export const rawLinguistYml = () => {
+	return new Promise((resolve, reject) => httpsGet("https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml", res => {
+		const buffer = [];
+		res.on("data", data => {
+			buffer.push(data);
+		}).on("end", () => {
+			const yaml = Buffer.concat(buffer);
+			resolve(YAML.parse(yaml + ""));
+		}).on("error", err => {
+			reject(err);
+		});
+	}));
 };
