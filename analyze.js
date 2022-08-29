@@ -44,7 +44,7 @@ const makeLookupObject = linguist => {
 	});
 	
 	return {
-		lingust: linguist,
+		linguist: linguist,
 		extension: extLookup,
 		filename: fnLookup
 	};
@@ -52,13 +52,50 @@ const makeLookupObject = linguist => {
 
 const analyzeRepo = (repoDetails, lookup) => {
 	const langs = repoDetails.languages;
-	const dummy = [];
+	
+	const langChanges = {};
 	langs.forEach(l => {
-		dummy.push({
-			name: l.name,
+		langChanges[l.name] = {
 			color: l.color,
-			changes: 1
+			changes: 0
+		};
+	});
+	
+	repoDetails.commits.forEach(commit => {
+		const files = commit.data.files;
+		files.forEach(file => {
+			const fn = file.filename;
+			const fnResult = lookup.filename[fn];
+			if (fnResult) {
+				for (let i = 0; i < fnResult.length; i++) {
+					const result = fnResult[i];
+					if (lookup.linguist[result].type == "programming" && result in langChanges) {
+						langChanges[result].changes = langChanges[result].changes + file.changes;
+						break;
+					}
+				}
+				return;
+			}
+
+			const ext = fn.substring(fn.lastIndexOf("."), fn.length);
+			const extResult = lookup.extension[ext];
+			if (extResult) {
+				for (let i = 0; i < extResult.length; i++) {
+					const result = extResult[i];
+					if (lookup.linguist[result].type == "programming" && result in langChanges) {
+						langChanges[result].changes = langChanges[result].changes + file.changes;
+						break;
+					}
+				}
+			}
 		});
 	});
-	return dummy;
+
+	return Object.keys(langChanges).map(lang => {
+		return {
+			name: lang,
+			color: langChanges[lang].color,
+			changes: langChanges[lang].changes
+		};
+	});
 };
