@@ -9,8 +9,7 @@ const octokit = new Octokit({
 qlUserId(octokit).then(response => {
 	return qlUserCommits(octokit, response.viewer.id);
 }).then(response => {
-	// const repos = response.viewer.repositoriesContributedTo.nodes;
-	const repos = [ response.viewer.repositoriesContributedTo.nodes[0] ];
+	const repos = response.viewer.repositoriesContributedTo.nodes;
 	return Promise.all(repos.map(async r => {
 		return {
 			languages: r.languages.nodes,
