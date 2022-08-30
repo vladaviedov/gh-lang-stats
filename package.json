@@ -1,11 +1,12 @@
 {
-  "name": "gh-stats",
+  "name": "gh-lang-stats",
   "version": "0.1.0",
-  "description": "Github Stats",
+  "description": "Github Lang Stats",
   "main": "index.js",
   "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
   "license": "MIT",
   "type": "module",
+  "bin": "./index.js",
   "scripts": {
     "start": "node .",
     "lint": "eslint ."
