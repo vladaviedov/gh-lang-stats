@@ -4,7 +4,10 @@
   "description": "Github Lang Stats",
   "homepage": "https://github.com/vladaviedov/gh-lang-stats",
   "bugs": "https://github.com/vladaviedov/gh-lang-stats/issues",
-  "repository": "github:vladaviedov/gh-lang-stats",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vladaviedov/gh-lang-stats"
+  },
   "license": "MIT",
   "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
   "files": [
@@ -13,6 +16,10 @@
   "main": "index.js",
   "type": "module",
   "bin": "index.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "start": "node .",
     "lint": "eslint ."
