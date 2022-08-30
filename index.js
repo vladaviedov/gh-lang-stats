@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Octokit } from "octokit";
 import { analyzeData } from "./analyze.js";
 import { qlUserId, qlUserCommits, restCommitDetails } from "./github-api.js";

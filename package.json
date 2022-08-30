@@ -2,11 +2,17 @@
   "name": "gh-lang-stats",
   "version": "0.1.0",
   "description": "Github Lang Stats",
-  "main": "index.js",
-  "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
+  "homepage": "https://github.com/vladaviedov/gh-lang-stats",
+  "bugs": "https://github.com/vladaviedov/gh-lang-stats/issues",
+  "repository": "github:vladaviedov/gh-lang-stats",
   "license": "MIT",
+  "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
+  "files": [
+    "*.js"
+  ],
+  "main": "index.js",
   "type": "module",
-  "bin": "./index.js",
+  "bin": "index.js",
   "scripts": {
     "start": "node .",
     "lint": "eslint ."
