@@ -1,5 +1,5 @@
 {
-  "name": "gh-lang-stats",
+  "name": "@vladaviedov/gh-lang-stats",
   "version": "0.1.0",
   "description": "Github Lang Stats",
   "homepage": "https://github.com/vladaviedov/gh-lang-stats",
