@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Octokit } from "octokit";
 import { analyzeData } from "./analyze.js";
+import { fillTemplate } from "./fill-template.js";
 import { qlUserId, qlUserCommits, restCommitDetails } from "./github-api.js";
 
 const octokit = new Octokit({
@@ -17,7 +18,7 @@ qlUserId(octokit).then(response => {
 			commits: await repoCommits(r)
 		};
 	}));
-}).then(analyzeData).then(console.log);
+}).then(analyzeData).then(fillTemplate);
 
 const repoCommits = repo => {
 	const owner = repo.owner.login;
