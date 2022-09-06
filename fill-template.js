@@ -37,20 +37,25 @@ const replaceList = (svg, data, total) => {
 	const templateEnd = svg.indexOf("__end__", templateStart) - 1;
 
 	const template = svg.substring(templateStart, templateEnd);
-	return svg.replace("__langs__", generateFromTemplate(template, data, total));
+	return svg.replace("__list__", generateFromTemplate(template, data, total));
 };
 
 const generateFromTemplate = (template, data, total) => {
 	let prev = 0.0;
 	let string = "";
 
-	data.forEach(lang => {
+	data = data.slice(0, 9);
+	let half = Math.floor(data.length / 2);
+
+	data.forEach((lang, index) => {
 		let cur = lang.changes / total * 100;
 		string += template
 			.replaceAll("$prev", prev.toFixed(2))
 			.replaceAll("$cur", cur.toFixed(2))
 			.replaceAll("$color", lang.color)
-			.replaceAll("$name", lang.name);
+			.replaceAll("$name", lang.name)
+			.replaceAll("$xCoord", ((index + 1) > half ? 1 : 0) * 50 + "%")
+			.replaceAll("$yCoord", (index % (half + 1) * 25) + "%");
 		prev += cur;
 	});
 
