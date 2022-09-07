@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="350" height="150" viewBox="0 0 350 150">
+	<style>
+		.background {
+			width: 100%;
+			height: 100%;
+			fill: #0a0f17;
+		}
+		
+		text {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+		}
+
+		.title {
+			font-size: 15px;
+			fill: #fcfcd8;
+		}
+
+		.bar-segment {
+			height: 100%;
+		}
+
+		.lang-name {
+			font-size: 11px;
+			fill: #eeeeb8
+		}
+	</style>
+
+	<!-- Background box -->
+	<rect class="background" />
+
+	<!-- Title -->
+	<text class="title" x="10%" y="20%">
+		Most Used Languages
+	</text>
+	
+	<!-- Percentage Bar -->
+	<svg x="10%" y="30%" width="80%" height="5%">
+		<!-- __template_bar__ <rect class="bar-segment" x="$prev%" width="$cur%" fill="$color" /> __end__ -->
+		__bar__
+	</svg>
+	
+	<!-- Language List -->
+	<svg x="10%" y="40%" width="80%" height="50%">
+		<!-- __template_list__ <svg y="$yCoord" x="$xCoord">
+			<circle cx="5" cy="6" r="5" fill="$color" />
+			<text class="lang-name" x="15" y="10">
+				$name - $cur%
+			</text>
+		</svg> __end__ -->
+		__list__
+	</svg>
+</svg>
