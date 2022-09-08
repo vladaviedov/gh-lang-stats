@@ -11,18 +11,18 @@
   "license": "MIT",
   "author": "Vladyslav Aviedov <vladaviedov@protonmail.com>",
   "files": [
-    "*.js"
+    "src/*.js"
   ],
-  "main": "index.js",
+  "main": "src/main.js",
   "type": "module",
-  "bin": "index.js",
+  "bin": "src/main.js",
   "publishConfig": {
     "access": "public",
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "start": "node .",
-    "lint": "eslint ."
+    "start": "node src",
+    "lint": "eslint src"
   },
   "devDependencies": {
     "eslint": "^8.22.0"
