@@ -21,7 +21,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "start": "node src",
+    "start": "node src/main.js",
     "lint": "eslint src"
   },
   "devDependencies": {
