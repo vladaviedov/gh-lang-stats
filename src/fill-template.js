@@ -44,7 +44,7 @@ const generateFromTemplate = (template, data, total) => {
 	let prev = 0.0;
 	let string = "";
 
-	data = data.slice(0, 9);
+	data = data.slice(0, 8);
 	let half = Math.floor(data.length / 2);
 
 	data.forEach((lang, index) => {
@@ -55,7 +55,7 @@ const generateFromTemplate = (template, data, total) => {
 			.replaceAll("$color", lang.color)
 			.replaceAll("$name", lang.name)
 			.replaceAll("$xCoord", ((index + 1) > half ? 1 : 0) * 50 + "%")
-			.replaceAll("$yCoord", (index % (half + 1) * 25) + "%");
+			.replaceAll("$yCoord", (index % (half) * 25) + "%");
 		prev += cur;
 	});
 
