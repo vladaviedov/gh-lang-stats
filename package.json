@@ -1,6 +1,6 @@
 {
   "name": "@vladaviedov/gh-lang-stats",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Github Lang Stats",
   "homepage": "https://github.com/vladaviedov/gh-lang-stats",
   "bugs": "https://github.com/vladaviedov/gh-lang-stats/issues",
@@ -28,7 +28,6 @@
     "eslint": "^8.22.0"
   },
   "dependencies": {
-    "node-fetch": "^3.2.10",
     "octokit": "^2.0.7",
     "yaml": "^2.1.1"
   }
