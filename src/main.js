@@ -26,8 +26,6 @@ const repoCommits = repo => {
 	const commitHashes = repo.defaultBranchRef.target.history.nodes;
 
 	const promises = [];
-	console.log(owner + "/" + name);
-	console.log(commitHashes.length);
 	commitHashes.forEach(hash => {
 		promises.push(restCommitInfo(octokit, owner, name, hash.oid));
 	});
