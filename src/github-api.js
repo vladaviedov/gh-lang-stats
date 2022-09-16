@@ -24,18 +24,55 @@ export const qlUserId = async client => {
 export const qlFullList = async (client, id) => {
 	try {
 		// Initial scan
-		const scan = await client.graphql(queryScan, { id: id })
-			.viewer.repositoriesContributedTo;
+		const scan = (await client.graphql(queryScan, {
+			id: id
+		})).viewer.repositoriesContributedTo;
 		
 		// Get all pages of repos
 		let pageInfo = scan.pageInfo;
 		while (pageInfo.hasNextPage) {
-			const scanNext = await client.graphql(queryScanNext,
-				{ id: id, after: pageInfo.endCursor })
-				.viewer.repositoriesContributedTo;
+			const scanNext = (await client.graphql(queryScanNext, {
+				id: id,
+				after: pageInfo.endCursor
+			})).viewer.repositoriesContributedTo;
 			pageInfo = scanNext.pageInfo;
-			scan.nodes += scanNext.nodes;
+			scan.nodes = [...scan.nodes, ...scanNext.nodes];
 		}
+
+		scan.nodes = await Promise.all(scan.nodes.map(async r => {
+			const commits = r.defaultBranchRef.target.history;
+			const langs = r.languages;
+
+			// Get all pages of commits
+			let pageInfo2 = commits.pageInfo;
+			while (pageInfo2.hasNextPage) {
+				const commitsNext = (await client.graphql(queryMoreCommits, {
+					name: r.name, 
+					owner: r.owner.login,
+					id: id,
+					after: pageInfo2.endCursor
+				})).repository.defaultBranchRef.target.history;
+				pageInfo2 = commitsNext.pageInfo;
+				commits.nodes = [...commits.nodes, ...commitsNext.nodes];
+			}
+			
+			// Get all pages on lnaguages
+			// I don't think this can even trigger
+			pageInfo2 = langs.pageInfo;
+			while (pageInfo2.hasNextPage) {
+				const langsNext = (await client.graphql(queryMoreLangs, {
+					name: r.name,
+					owner: r.owner.login,
+					after: pageInfo2.endCursor
+				})).repository.languages;
+				pageInfo2 = langsNext.pageInfo;
+				langs.nodes = [...langs.nodes, ...langsNext.nodes];
+			}
+
+			return r;
+		}));
+		
+		return scan;
 	} catch (ex) {
 		handleHttpErr(ex.response);
 	}
@@ -95,7 +132,7 @@ const queryScan = `query ($id: ID) {
 								nodes { oid }
 								pageInfo {
 									endCursor
-									startCursor
+									hasNextPage
 								}
 							}
 						}
@@ -139,7 +176,7 @@ const queryScanNext = `query ($id: ID, $after: String) {
 								nodes { oid }
 								pageInfo {
 									endCursor
-									startCursor
+									hasNextPage
 								}
 							}
 						}
@@ -155,6 +192,39 @@ const queryScanNext = `query ($id: ID, $after: String) {
 						hasNextPage
 					}
 				}
+			}
+			pageInfo {
+				endCursor
+				hasNextPage
+			}
+		}
+	}
+}`;
+
+const queryMoreCommits = `query ($name: String!, $owner: String!, $id: ID, $after: String) {
+	repository(name: $name, owner: $owner) {
+		defaultBranchRef {
+			target {
+				... on Commit {
+					history(first: 100, author: {id: $id}, after: $after) {
+						nodes { oid }
+						pageInfo {
+							endCursor
+							hasNextPage
+						}
+					}
+				}
+			}
+		}
+	}
+}`;
+
+const queryMoreLangs = `query ($name: String!, $owner: String!, $id: ID) {
+	repository(name: $name, owner: $owner) {
+		languages(first: 100, after: $after) {
+			nodes {
+				color
+				name
 			}
 			pageInfo {
 				endCursor
