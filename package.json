@@ -21,13 +21,14 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "start": "node src",
+    "start": "node src/main.js",
     "lint": "eslint src"
   },
   "devDependencies": {
     "eslint": "^8.22.0"
   },
   "dependencies": {
+    "node-fetch": "^3.2.10",
     "octokit": "^2.0.7",
     "yaml": "^2.1.1"
   }
