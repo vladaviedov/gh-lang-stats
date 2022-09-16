@@ -19,7 +19,7 @@ export const qlUserId = async client => {
  * Scan user contributions
  * @param {Octokit} client Octokit Client
  * @param {string} id User's Node ID
- * @returns 
+ * @returns Array of repositories with commits
  */
 export const qlFullList = async (client, id) => {
 	try {
@@ -78,16 +78,28 @@ export const qlFullList = async (client, id) => {
 	}
 };
 
-export const restCommitDetails = (client, owner, repo, ref) => {
-	return client.request("GET /repos/{owner}/{repo}/commits/{ref}", {
+/**
+ * Get info about a commit
+ * @param {Octokit} client Octokit Client
+ * @param {string} owner Repository owner (user or org)
+ * @param {string} repo Repository name
+ * @param {string} hash Commit Hash
+ * @returns Commit information
+ */
+export const restCommitInfo = (client, owner, repo, hash) => {
+	return client.request(reqCommitInfo, {
 		owner: owner,
 		repo: repo,
-		ref: ref 
+		ref: hash 
 	});
 };
 
+/**
+ * Download GitHub Linguist's languages.yml
+ * @returns languages.yml as an object
+ */
 export const rawLinguistYml = () => {
-	return new Promise((resolve, reject) => httpsGet("https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml", res => {
+	return new Promise((resolve, reject) => httpsGet(urlLinguistYml, res => {
 		const buffer = [];
 		res.on("data", data => {
 			buffer.push(data);
@@ -233,3 +245,8 @@ const queryMoreLangs = `query ($name: String!, $owner: String!, $id: ID) {
 		}
 	}
 }`;
+
+/* Rest/Raw Requests */
+
+const reqCommitInfo = "GET /repos/{owner}/{repo}/commits/{ref}";
+const urlLinguistYml = "https://raw.githubusercontent.com/github/linguist/master/lib/linguist/languages.yml";

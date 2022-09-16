@@ -2,7 +2,7 @@
 import { Octokit } from "octokit";
 import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
-import { qlUserId, qlFullList, restCommitDetails } from "./github-api.js";
+import { qlUserId, qlFullList, restCommitInfo } from "./github-api.js";
 
 const octokit = new Octokit({
 	auth: process.env.ACCESS_KEY
@@ -29,7 +29,7 @@ const repoCommits = repo => {
 	console.log(owner + "/" + name);
 	console.log(commitHashes.length);
 	commitHashes.forEach(hash => {
-		promises.push(restCommitDetails(octokit, owner, name, hash.oid));
+		promises.push(restCommitInfo(octokit, owner, name, hash.oid));
 	});
 	return Promise.all(promises);
 };
