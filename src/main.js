@@ -2,16 +2,16 @@
 import { Octokit } from "octokit";
 import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
-import { qlUserId, qlUserCommits, restCommitDetails } from "./github-api.js";
+import { qlUserId, qlFullList, restCommitInfo } from "./github-api.js";
 
 const octokit = new Octokit({
 	auth: process.env.ACCESS_KEY
 });
 
-qlUserId(octokit).then(response => {
-	return qlUserCommits(octokit, response.viewer.id);
+qlUserId(octokit).then(id => {
+	return qlFullList(octokit, id);
 }).then(response => {
-	const repos = response.viewer.repositoriesContributedTo.nodes;
+	const repos = response.nodes;
 	return Promise.all(repos.map(async r => {
 		return {
 			languages: r.languages.nodes,
@@ -27,7 +27,7 @@ const repoCommits = repo => {
 
 	const promises = [];
 	commitHashes.forEach(hash => {
-		promises.push(restCommitDetails(octokit, owner, name, hash.oid));
+		promises.push(restCommitInfo(octokit, owner, name, hash.oid));
 	});
 	return Promise.all(promises);
 };
