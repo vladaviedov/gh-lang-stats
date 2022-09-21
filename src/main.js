@@ -10,14 +10,19 @@ const octokit = new Octokit({
 
 qlUserId(octokit).then(id => {
 	return qlFullList(octokit, id);
-}).then(response => {
+}).then(async response => {
 	const repos = response.nodes;
-	return Promise.all(repos.map(async r => {
-		return {
-			languages: r.languages.nodes,
-			commits: await repoCommits(r)
-		};
-	}));
+	const commitList = [];
+
+	for (let i in repos) {
+		const commits = await repoCommits(repos[i]);
+		commitList.push({
+			languages: repos[i].languages.nodes,
+			commits: commits
+		});
+	}
+
+	return commitList;
 }).then(analyzeData).then(fillTemplate);
 
 const repoCommits = repo => {

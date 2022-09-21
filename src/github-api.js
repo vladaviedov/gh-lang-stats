@@ -86,12 +86,18 @@ export const qlFullList = async (client, id) => {
  * @param {string} hash Commit Hash
  * @returns Commit information
  */
-export const restCommitInfo = (client, owner, repo, hash) => {
-	return client.request(reqCommitInfo, {
-		owner: owner,
-		repo: repo,
-		ref: hash 
-	});
+export const restCommitInfo = async (client, owner, repo, hash) => {
+	try {
+		const response = await client.request(reqCommitInfo, {
+			owner: owner,
+			repo: repo,
+			ref: hash 
+		});
+
+		return response;
+	} catch (ex) {
+		return handleHttpErr(ex.response, () => restCommitInfo(client, owner, repo, hash));
+	}
 };
 
 /**
@@ -112,12 +118,33 @@ export const rawLinguistYml = () => {
 	}));
 };
 
-const handleHttpErr = err => {
-	if (err.status == 401) {
-		console.error("Request is unauthorized.");
+const handleHttpErr = async (err, restart) => {
+	switch (err.status) {
+		case 401:
+			console.error("Request is unauthorized.");
+			break;
+		case 403:
+			if (restart == undefined) {
+				console.error("Request if forbidden");
+				break;
+			}
+
+			console.log("Secondary limit hit");
+			{
+				const delay = err.headers["retry-after"];
+				console.log(`Waiting ${delay} seconds before retrying`);
+				await sleep(delay * 1000);
+			}
+			return restart();
 	}
 
 	process.exit(1);
+};
+
+const sleep = ms => {
+	return new Promise(resolve => {
+		setTimeout(resolve, ms);
+	});
 };
 
 /* GraphQL Requests */
