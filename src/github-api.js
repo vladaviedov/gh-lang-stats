@@ -11,7 +11,7 @@ export const qlUserId = async client => {
 		const response = await client.graphql(queryUserId);
 		return response.viewer.id;
 	} catch (ex) {
-		handleHttpErr(ex.response);
+		handleQlErr(ex.response);
 	}
 };
 
@@ -72,9 +72,9 @@ export const qlFullList = async (client, id) => {
 			return r;
 		}));
 		
-		return scan;
+		return scan.nodes;
 	} catch (ex) {
-		handleHttpErr(ex.response);
+		handleQlErr(ex.response);
 	}
 };
 
@@ -96,7 +96,15 @@ export const restCommitInfo = async (client, owner, repo, hash) => {
 
 		return response;
 	} catch (ex) {
-		return handleHttpErr(ex.response, () => restCommitInfo(client, owner, repo, hash));
+		const error = ex.reponse;
+		if (error.status == 403) {
+			const delay = error.headers["retry-after"];
+			console.log(`Secondary limit hit. Waiting ${delay} seconds`);
+			await sleep(delay * 1000);
+			return await restCommitInfo(client, owner, repo, hash);
+		} else {
+			console.error("An unknown error has occured.");
+		}
 	}
 };
 
@@ -118,24 +126,11 @@ export const rawLinguistYml = () => {
 	}));
 };
 
-const handleHttpErr = async (err, restart) => {
-	switch (err.status) {
-		case 401:
-			console.error("Request is unauthorized.");
-			break;
-		case 403:
-			if (restart == undefined) {
-				console.error("Request if forbidden");
-				break;
-			}
-
-			console.log("Secondary limit hit");
-			{
-				const delay = err.headers["retry-after"];
-				console.log(`Waiting ${delay} seconds before retrying`);
-				await sleep(delay * 1000);
-			}
-			return restart();
+const handleQlErr = err => {
+	if (err.status == 401) {
+		console.error("Request is unauthorized.");
+	} else {
+		console.error("An unknown error has occured.");
 	}
 
 	process.exit(1);
