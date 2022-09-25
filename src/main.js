@@ -1,12 +1,24 @@
 #!/usr/bin/env node
 import { Octokit } from "octokit";
+import { throttling } from "@octokit/plugin-throttling";
 import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
 import { qlUserId, qlFullList } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
 
-const octokit = new Octokit({
-	auth: process.env.ACCESS_KEY
+const OctokitPlug = Octokit.plugin(throttling);
+const octokit = new OctokitPlug({
+	auth: process.env.ACCESS_KEY,
+	throttle: {
+		onRateLimit: retryAfter => {
+			console.error(`Ratelimit hit. Waiting ${retryAfter} seconds`);
+			return true;
+		},
+		onSecondaryRateLimit: retryAfter => {
+			console.error(`Secondary ratelimit hit. Waiting ${retryAfter} seconds`);
+			return true;
+		}
+	}
 });
 
 qlUserId(octokit)

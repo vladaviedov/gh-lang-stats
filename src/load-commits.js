@@ -1,6 +1,6 @@
 import { restCommitInfo } from "./github-api.js";
 
-const maxConcurrent = 1;
+const maxConcurrent = 5;
 const queue = [];
 
 export const loadCommits = async (client, repos) => {
@@ -49,11 +49,7 @@ const processQueue = async () => {
 	while (queue.length > 0) {
 		// Wait for free slot
 		const res = await Promise.any(workers);
-		workers.splice(res, 1);
-
-		// Run next request
-		workers.push(worker(queue.pop()));
-		console.log(workers);
+		workers[res] = worker(queue.pop(), res);
 	}
 };
 

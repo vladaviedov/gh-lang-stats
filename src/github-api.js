@@ -11,7 +11,7 @@ export const qlUserId = async client => {
 		const response = await client.graphql(queryUserId);
 		return response.viewer.id;
 	} catch (ex) {
-		handleQlErr(ex.response);
+		handleHttpErr(ex.response);
 	}
 };
 
@@ -74,7 +74,7 @@ export const qlFullList = async (client, id) => {
 		
 		return scan.nodes;
 	} catch (ex) {
-		handleQlErr(ex.response);
+		handleHttpErr(ex.response);
 	}
 };
 
@@ -96,16 +96,7 @@ export const restCommitInfo = async (client, owner, repo, hash) => {
 
 		return response;
 	} catch (ex) {
-		const error = ex.response;
-		if (error.status == 403) {
-			const delay = error.headers["retry-after"];
-			console.log(`Secondary limit hit. Waiting ${delay} seconds`);
-			await sleep(delay * 1000);
-			return await restCommitInfo(client, owner, repo, hash);
-		} else {
-			console.error("An unknown error has occured.");
-			console.error(error);
-		}
+		handleHttpErr(ex.response);
 	}
 };
 
@@ -127,7 +118,7 @@ export const rawLinguistYml = () => {
 	}));
 };
 
-const handleQlErr = err => {
+const handleHttpErr = err => {
 	if (err.status == 401) {
 		console.error("Request is unauthorized.");
 	} else {
@@ -135,12 +126,6 @@ const handleQlErr = err => {
 	}
 
 	process.exit(1);
-};
-
-const sleep = ms => {
-	return new Promise(resolve => {
-		setTimeout(resolve, ms);
-	});
 };
 
 /* GraphQL Requests */
