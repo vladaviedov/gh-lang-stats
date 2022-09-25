@@ -1,33 +1,29 @@
 #!/usr/bin/env node
 import { Octokit } from "octokit";
+import { throttling } from "@octokit/plugin-throttling";
 import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
-import { qlUserId, qlFullList, restCommitInfo } from "./github-api.js";
+import { qlUserId, qlFullList } from "./github-api.js";
+import { loadCommits } from "./load-commits.js";
+import { config } from "./config.js";
 
-const octokit = new Octokit({
-	auth: process.env.ACCESS_KEY
+const OctokitPlug = Octokit.plugin(throttling);
+const octokit = new OctokitPlug({
+	auth: config.token,
+	throttle: {
+		onRateLimit: retryAfter => {
+			console.error(`Ratelimit hit. Waiting ${retryAfter} seconds`);
+			return true;
+		},
+		onSecondaryRateLimit: retryAfter => {
+			console.error(`Secondary ratelimit hit. Waiting ${retryAfter} seconds`);
+			return true;
+		}
+	}
 });
 
-qlUserId(octokit).then(id => {
-	return qlFullList(octokit, id);
-}).then(response => {
-	const repos = response.nodes;
-	return Promise.all(repos.map(async r => {
-		return {
-			languages: r.languages.nodes,
-			commits: await repoCommits(r)
-		};
-	}));
-}).then(analyzeData).then(fillTemplate);
-
-const repoCommits = repo => {
-	const owner = repo.owner.login;
-	const name = repo.name;
-	const commitHashes = repo.defaultBranchRef.target.history.nodes;
-
-	const promises = [];
-	commitHashes.forEach(hash => {
-		promises.push(restCommitInfo(octokit, owner, name, hash.oid));
-	});
-	return Promise.all(promises);
-};
+qlUserId(octokit)
+	.then(id => qlFullList(octokit, id))
+	.then(list => loadCommits(octokit, list))
+	.then(analyzeData)
+	.then(fillTemplate);

@@ -72,7 +72,7 @@ export const qlFullList = async (client, id) => {
 			return r;
 		}));
 		
-		return scan;
+		return scan.nodes;
 	} catch (ex) {
 		handleHttpErr(ex.response);
 	}
@@ -86,12 +86,18 @@ export const qlFullList = async (client, id) => {
  * @param {string} hash Commit Hash
  * @returns Commit information
  */
-export const restCommitInfo = (client, owner, repo, hash) => {
-	return client.request(reqCommitInfo, {
-		owner: owner,
-		repo: repo,
-		ref: hash 
-	});
+export const restCommitInfo = async (client, owner, repo, hash) => {
+	try {
+		const response = await client.request(reqCommitInfo, {
+			owner: owner,
+			repo: repo,
+			ref: hash 
+		});
+
+		return response;
+	} catch (ex) {
+		handleHttpErr(ex.response);
+	}
 };
 
 /**
@@ -115,6 +121,8 @@ export const rawLinguistYml = () => {
 const handleHttpErr = err => {
 	if (err.status == 401) {
 		console.error("Request is unauthorized.");
+	} else {
+		console.error("An unknown error has occured.");
 	}
 
 	process.exit(1);

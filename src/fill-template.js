@@ -1,15 +1,16 @@
 import { readFileSync, writeFileSync } from "fs";
+import { config } from "./config.js";
 
 export const fillTemplate = data => {
 	const total = data.Total;
 	delete data.Total;
 	const sorted = sortToArray(data);
 
-	let svg = readFileSync("template.svg", { encoding: "utf-8" });
+	let svg = readFileSync(config.inputFile, { encoding: "utf-8" });
 	svg = replaceBar(svg, sorted, total);
 	svg = replaceList(svg, sorted, total);
 
-	writeFileSync("generated.svg", svg, { encoding: "utf-8" });
+	writeFileSync(config.outputFile, svg, { encoding: "utf-8" });
 };
 
 const sortToArray = unsorted => {
