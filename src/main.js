@@ -5,10 +5,11 @@ import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
 import { qlUserId, qlFullList } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
+import { config } from "./config.js";
 
 const OctokitPlug = Octokit.plugin(throttling);
 const octokit = new OctokitPlug({
-	auth: process.env.ACCESS_KEY,
+	auth: config.token,
 	throttle: {
 		onRateLimit: retryAfter => {
 			console.error(`Ratelimit hit. Waiting ${retryAfter} seconds`);
