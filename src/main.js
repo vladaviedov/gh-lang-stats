@@ -11,6 +11,6 @@ const octokit = new Octokit({
 
 qlUserId(octokit)
 	.then(id => qlFullList(octokit, id))
-	.then(loadCommits)
+	.then(list => loadCommits(octokit, list))
 	.then(analyzeData)
 	.then(fillTemplate);
