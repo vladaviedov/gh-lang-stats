@@ -1,6 +1,6 @@
 import { restCommitInfo } from "./github-api.js";
+import { config } from "./config.js";
 
-const maxConcurrent = 5;
 const queue = [];
 
 export const loadCommits = async (client, repos) => {
@@ -42,7 +42,7 @@ const processQueue = async () => {
 	const workers = [];
 
 	// Start initial workers
-	for (let i = 0; i < maxConcurrent; i++) {
+	for (let i = 0; i < config.maxConcur; i++) {
 		workers.push(worker(queue.pop(), i));
 	}
 
