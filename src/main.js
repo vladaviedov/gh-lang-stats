@@ -6,6 +6,7 @@ import { fillTemplate } from "./fill-template.js";
 import { qlUserId, qlFullList } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
 import { config } from "./config.js";
+import { retrieveStorage, updateStorage } from "./cache.js";
 
 const OctokitPlug = Octokit.plugin(throttling);
 const octokit = new OctokitPlug({
@@ -26,4 +27,5 @@ qlUserId(octokit)
 	.then(id => qlFullList(octokit, id))
 	.then(list => loadCommits(octokit, list))
 	.then(analyzeData)
+	.then(updateStorage)
 	.then(fillTemplate);
