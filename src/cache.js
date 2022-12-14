@@ -2,20 +2,26 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { config } from "./config.js";
 
 export const retrieveStorage = () => {
+	// Check if store exists
 	if (!existsSync(config.storeFile)) {
-		return { Total: 0 };
+		return null;
 	}
 
+	// Read from store
 	const rawData = readFileSync(config.storeFile, { encoding: "utf-8" });
-	const data = JSON.parse(rawData);
-	console.log(data);
-	return data;
+	return JSON.parse(rawData);
 };
 
 export const updateStorage = data => {
 	// data.fetchDate = 
 
-	const jsonData = JSON.stringify(data);
+	// Wrapper to store timestamp
+	const dataStorage = {
+		analysis: data,
+		timestamp: 0
+	};
+
+	// Write to store
+	const jsonData = JSON.stringify(dataStorage);
 	writeFileSync(config.storeFile, jsonData, { encoding: "utf-8" });
-	return data;
 };

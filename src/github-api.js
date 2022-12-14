@@ -78,6 +78,11 @@ export const qlFullList = async (client, id) => {
 	}
 };
 
+export const qlNewList = async (client, id, timestamp) => {
+	// TODO: implement
+	return null;
+};
+
 /**
  * Get info about a commit
  * @param {Octokit} client Octokit Client
