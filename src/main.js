@@ -3,7 +3,7 @@ import { Octokit } from "octokit";
 import { throttling } from "@octokit/plugin-throttling";
 import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
-import { qlUserId, qlFullList, qlNewList } from "./github-api.js";
+import { qlUserId, qlFullList, qlListFrom } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
 import { config } from "./config.js";
 import { retrieveStorage, updateStorage } from "./cache.js";
@@ -24,8 +24,20 @@ const octokit = new OctokitPlug({
 });
 
 const combineData = (oldData, newData) => {
-	// TODO: implement
-	return null;
+	Object.keys(newData).forEach(lang => {
+		if (lang == "Total") {
+			oldData.Total += newData.Total;
+			return;
+		}
+		
+		if (oldData[lang]) {
+			oldData[lang].changes += newData[lang].changes;
+		} else {
+			oldData[lang] = newData[lang];
+		}
+	});
+	
+	return oldData;
 };
 
 const main = async () => {
@@ -39,12 +51,14 @@ const main = async () => {
 		const commits = await loadCommits(octokit, list);
 		analysis = await analyzeData(commits);
 	} else {
-		const newList = await qlNewList(octokit, userId, dataStorage.timestamp);
+		const newList = await qlListFrom(octokit, userId, dataStorage.timestamp);
 		const newCommits = await loadCommits(octokit, newList);
 		const newAnalysis = await analyzeData(newCommits);
 		
 		analysis = combineData(dataStorage.analysis, newAnalysis);
 	}
+	
+	console.log(analysis);
 	
 	updateStorage(analysis);
 	fillTemplate(analysis);

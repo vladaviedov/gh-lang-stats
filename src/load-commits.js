@@ -42,7 +42,8 @@ const processQueue = async () => {
 	const workers = [];
 
 	// Start initial workers
-	for (let i = 0; i < config.maxConcur; i++) {
+	const workerCount = Math.min(config.maxConcur, queue.length);
+	for (let i = 0; i < workerCount; i++) {
 		workers.push(worker(queue.pop(), i));
 	}
 

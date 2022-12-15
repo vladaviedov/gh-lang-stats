@@ -13,12 +13,10 @@ export const retrieveStorage = () => {
 };
 
 export const updateStorage = data => {
-	// data.fetchDate = 
-
 	// Wrapper to store timestamp
 	const dataStorage = {
 		analysis: data,
-		timestamp: 0
+		timestamp: new Date().toISOString()
 	};
 
 	// Write to store

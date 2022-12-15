@@ -22,10 +22,22 @@ export const qlUserId = async client => {
  * @returns Array of repositories with commits
  */
 export const qlFullList = async (client, id) => {
+	return qlListFrom(client, id, new Date(0).toISOString());
+};
+
+/**
+ * Scan user contributions since a given date
+ * @param {Octokit} client 
+ * @param {string} id 
+ * @param {Date} timestamp 
+ * @returns Array of repositories with commits
+ */
+export const qlListFrom = async (client, id, timestamp) => {
 	try {
 		// Initial scan
 		const scan = (await client.graphql(queryScan, {
-			id: id
+			id: id,
+			since: timestamp.toString()
 		})).viewer.repositoriesContributedTo;
 		
 		// Get all pages of repos
@@ -33,6 +45,7 @@ export const qlFullList = async (client, id) => {
 		while (pageInfo.hasNextPage) {
 			const scanNext = (await client.graphql(queryScanNext, {
 				id: id,
+				since: timestamp.toString(),
 				after: pageInfo.endCursor
 			})).viewer.repositoriesContributedTo;
 			pageInfo = scanNext.pageInfo;
@@ -76,11 +89,6 @@ export const qlFullList = async (client, id) => {
 	} catch (ex) {
 		handleHttpErr(ex.response);
 	}
-};
-
-export const qlNewList = async (client, id, timestamp) => {
-	// TODO: implement
-	return null;
 };
 
 /**
@@ -127,6 +135,7 @@ const handleHttpErr = err => {
 	if (err.status == 401) {
 		console.error("Request is unauthorized.");
 	} else {
+		console.error(err);
 		console.error("An unknown error has occured.");
 	}
 
@@ -139,7 +148,7 @@ const queryUserId = `{
 	viewer { id }
 }`;
 
-const queryScan = `query ($id: ID) {
+const queryScan = `query ($id: ID, $since: GitTimestamp) {
 	viewer {
 		repositoriesContributedTo(
 			first: 100
@@ -153,7 +162,11 @@ const queryScan = `query ($id: ID) {
 				defaultBranchRef {
 					target {
 						... on Commit {
-							history(first: 100, author: {id: $id}) {
+							history(
+								first: 100,
+								author: {id: $id},
+								since: $since
+							) {
 								nodes { oid }
 								pageInfo {
 									endCursor
@@ -182,7 +195,7 @@ const queryScan = `query ($id: ID) {
 	}
 }`;
 
-const queryScanNext = `query ($id: ID, $after: String) {
+const queryScanNext = `query ($id: ID, $since: GitTimestamp, $after: String) {
 	viewer {
 		repositoriesContributedTo(
 			first: 100
@@ -197,7 +210,11 @@ const queryScanNext = `query ($id: ID, $after: String) {
 				defaultBranchRef {
 					target {
 						... on Commit {
-							history(first: 100, author: {id: $id}) {
+							history(
+								first: 100,
+								since: $since,
+								author: {id: $id}
+							) {
 								nodes { oid }
 								pageInfo {
 									endCursor
