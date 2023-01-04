@@ -58,8 +58,6 @@ const main = async () => {
 		analysis = combineData(dataStorage.analysis, newAnalysis);
 	}
 	
-	console.log(analysis);
-	
 	updateStorage(analysis);
 	fillTemplate(analysis);
 };
