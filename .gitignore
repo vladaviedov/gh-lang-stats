@@ -1,3 +1,7 @@
+# Release
 node_modules/
+
+# Dev
 .vscode/
 *.svg
+data.json
