@@ -49,17 +49,19 @@ const main = async () => {
 	if (dataStorage == null) {
 		const list = await qlFullList(octokit, userId);
 		const commits = await loadCommits(octokit, list);
+		
 		analysis = await analyzeData(commits);
+		fillTemplate(analysis, null);
 	} else {
 		const newList = await qlListFrom(octokit, userId, dataStorage.timestamp);
 		const newCommits = await loadCommits(octokit, newList);
 		const newAnalysis = await analyzeData(newCommits);
-		
+
 		analysis = combineData(dataStorage.analysis, newAnalysis);
+		fillTemplate(analysis, newAnalysis);
 	}
 	
 	updateStorage(analysis);
-	fillTemplate(analysis);
 };
 
 main();
