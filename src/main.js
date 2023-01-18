@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Octokit } from "octokit";
 import { throttling } from "@octokit/plugin-throttling";
-import { analyzeData } from "./analyze.js";
+import { analyzeData, aggregate } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
 import { qlUserId, qlFullList, qlListFrom } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
@@ -23,45 +23,43 @@ const octokit = new OctokitPlug({
 	}
 });
 
-const combineData = (oldData, newData) => {
-	Object.keys(newData).forEach(lang => {
-		if (lang == "Total") {
-			oldData.Total += newData.Total;
-			return;
-		}
-		
-		if (oldData[lang]) {
-			oldData[lang].changes += newData[lang].changes;
-		} else {
-			oldData[lang] = newData[lang];
-		}
-	});
-	
-	return oldData;
-};
-
 const main = async () => {
 	const userId = await qlUserId(octokit);
 	
+	// Check storage
 	const dataStorage = retrieveStorage();
-	let analysis;
+	const list = dataStorage ?
+		await qlListFrom(octokit, userId, dataStorage.timestamp) :
+		await qlFullList(octokit, userId);
 
-	if (dataStorage == null) {
-		const list = await qlFullList(octokit, userId);
-		const commits = await loadCommits(octokit, list);
+	// Process commits
+	const commits = await loadCommits(octokit, list);
+	const analysis = await analyzeData(commits);
+	const combined = dataStorage ?
+		[...dataStorage.analysis, ...analysis] :
+		analysis;
+
+	console.log(aggregate(analysis));
+	console.log(aggregate(combined));
+
+	// let analysis;
+
+	// if (dataStorage == null) {
+	// 	const list = await qlFullList(octokit, userId);
+	// 	const commits = await loadCommits(octokit, list);
 		
-		analysis = await analyzeData(commits);
-		fillTemplate(analysis, null);
-	} else {
-		const newList = await qlListFrom(octokit, userId, dataStorage.timestamp);
-		const newCommits = await loadCommits(octokit, newList);
-		const newAnalysis = await analyzeData(newCommits);
+	// 	analysis = await analyzeData(commits);
+	// 	fillTemplate(analysis, null);
+	// } else {
+	// 	const newList = await qlListFrom(octokit, userId, dataStorage.timestamp);
+	// 	const newCommits = await loadCommits(octokit, newList);
+	// 	const newAnalysis = await analyzeData(newCommits);
 
-		analysis = combineData(dataStorage.analysis, newAnalysis);
-		fillTemplate(analysis, newAnalysis);
-	}
+	// 	analysis = combineData(dataStorage.analysis, newAnalysis);
+	// 	fillTemplate(analysis, newAnalysis);
+	// }
 	
-	updateStorage(analysis);
+	updateStorage(combined);
 };
 
 main();

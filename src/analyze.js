@@ -4,18 +4,7 @@ export const analyzeData = async detailsList => {
 	const linguistYaml = await rawLinguistYml();
 	const lookup = makeLookupObject(linguistYaml);
 
-	const analysis = detailsList.map(r => analyzeRepo(r, lookup)).flat();
-	return analysis.reduce((prev, current) => {
-		if (current.changes == 0) return prev;
-
-		if (current.name in prev) {
-			prev[current.name].changes += current.changes;
-		} else {
-			prev[current.name] = { color: current.color, changes: current.changes };
-		}
-		prev.Total += current.changes;
-		return prev;
-	}, { Total: 0 });
+	return detailsList.map(r => analyzeRepo(r, lookup)).flat();
 };
 
 const makeLookupObject = linguist => {
@@ -51,62 +40,69 @@ const makeLookupObject = linguist => {
 };
 
 const analyzeRepo = (repoDetails, lookup) => {
-	const langs = repoDetails.languages;
-	
-	const langChanges = {};
-	langs.forEach(l => {
-		langChanges[l.name] = {
-			color: l.color,
-			changes: 0
-		};
-	});
-	
-	repoDetails.commits.forEach(commit => {
-		const files = commit.data.files;
-		files.forEach(file => {
-			const fn = file.filename;
-			const fnResult = lookup.filename[fn];
-			if (fnResult) {
-				const possibleLangs = [];
-				for (let i = 0; i < fnResult.length; i++) {
-					const result = fnResult[i];
-					if (lookup.linguist[result].type == "programming" && result in langChanges) {
-						possibleLangs.push(result);
-					}
-				}
-				if (possibleLangs.length == 1) {
-					const result = possibleLangs[0];
-					langChanges[result].changes = langChanges[result].changes + file.changes;
-				} else if (possibleLangs.length >= 2) {
-					console.log(`Ambiguous file. Filename: ${fn}, Options: ${possibleLangs}`);
+	// Possible languages
+	const langs = repoDetails.languages.map(lang => lang.name);
+
+	return repoDetails.commits.map(commit => {
+		// Running total for commit
+		const changes = {};
+
+		commit.data.files.forEach(file => {
+			// Specific filename lookup (Makefile, Dockerfile, etc.)
+			const name = file.filename.split("/").pop();
+			const nameResult = lookup.filename[name];
+			if (nameResult) {
+				const choice = chooseResult(nameResult, langs);
+				if (choice) {
+					changes[choice] = changes[choice] ?? 0 + file.changes;
+					return;
 				}
 			}
 
-			const ext = fn.substring(fn.lastIndexOf("."), fn.length);
+			// Standard extension lookup
+			const ext = name.substring(name.lastIndexOf("."), name.length);
 			const extResult = lookup.extension[ext];
 			if (extResult) {
-				const possibleLangs = [];
-				for (let i = 0; i < extResult.length; i++) {
-					const result = extResult[i];
-					if (lookup.linguist[result].type == "programming" && result in langChanges) {
-						possibleLangs.push(result);
-					}
-				}
-				if (possibleLangs.length == 1) {
-					const result = possibleLangs[0];
-					langChanges[result].changes = langChanges[result].changes + file.changes;
-				} else if (possibleLangs.length >= 2) {
-					console.log(`Ambiguous file. Filename: ${fn}, Options: ${possibleLangs}`);
+				const choice = chooseResult(extResult, langs);
+				if (choice) {
+					changes[choice] = changes[choice] ?? 0 + file.changes;
+					return;
 				}
 			}
 		});
-	});
 
-	return Object.keys(langChanges).map(lang => {
 		return {
-			name: lang,
-			color: langChanges[lang].color,
-			changes: langChanges[lang].changes
+			hash: commit.data.sha,
+			changes: changes
 		};
 	});
+};
+
+const chooseResult = (result, langs) => {
+	const choices = [];
+	result.forEach(lang => {
+		if (langs.includes(lang)) {
+			choices.push(lang);
+		}
+	});
+
+	if (choices.length == 1) {
+		return choices[0];
+	}
+
+	// TODO: proper handling
+	if (choices.length >= 2) {
+		console.log(`Ambiguous file. Options: ${choices}`);
+	}
+
+	return null;
+};
+
+export const aggregate = analysis => {
+	return analysis.reduce((total, commit) => {
+		Object.keys(commit.changes).forEach(lang => {
+			total[lang] = (total[lang] ?? 0) + commit.changes[lang];
+		});
+		return total;
+	}, {});
 };
