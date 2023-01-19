@@ -1,8 +1,5 @@
-import { rawLinguistYml } from "./github-api.js";
-
-export const analyzeData = async detailsList => {
-	const linguistYaml = await rawLinguistYml();
-	const lookup = makeLookupObject(linguistYaml);
+export const analyzeData = (detailsList, linguist) => {
+	const lookup = makeLookupObject(linguist);
 
 	return detailsList.map(r => analyzeRepo(r, lookup)).flat();
 };
@@ -96,13 +93,4 @@ const chooseResult = (result, langs) => {
 	}
 
 	return null;
-};
-
-export const aggregate = analysis => {
-	return analysis.reduce((total, commit) => {
-		Object.keys(commit.changes).forEach(lang => {
-			total[lang] = (total[lang] ?? 0) + commit.changes[lang];
-		});
-		return total;
-	}, {});
 };

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { Octokit } from "octokit";
 import { throttling } from "@octokit/plugin-throttling";
-import { analyzeData, aggregate } from "./analyze.js";
+import { analyzeData } from "./analyze.js";
 import { fillTemplate } from "./fill-template.js";
-import { qlUserId, qlFullList, qlListFrom } from "./github-api.js";
+import { qlUserId, qlFullList, qlListFrom, rawLinguistYml } from "./github-api.js";
 import { loadCommits } from "./load-commits.js";
 import { config } from "./config.js";
 import { retrieveStorage, updateStorage } from "./cache.js";
@@ -23,8 +23,18 @@ const octokit = new OctokitPlug({
 	}
 });
 
+const aggregate = data => {
+	return data.reduce((total, commit) => {
+		Object.keys(commit.changes).forEach(lang => {
+			total[lang] = (total[lang] ?? 0) + commit.changes[lang];
+		});
+		return total;
+	}, {});
+};
+
 const main = async () => {
 	const userId = await qlUserId(octokit);
+	const linguist = await rawLinguistYml();
 	
 	// Check storage
 	const dataStorage = retrieveStorage();
@@ -34,31 +44,12 @@ const main = async () => {
 
 	// Process commits
 	const commits = await loadCommits(octokit, list);
-	const analysis = await analyzeData(commits);
+	const analysis = await analyzeData(commits, linguist);
 	const combined = dataStorage ?
 		[...dataStorage.analysis, ...analysis] :
 		analysis;
 
-	console.log(aggregate(analysis));
-	console.log(aggregate(combined));
-
-	// let analysis;
-
-	// if (dataStorage == null) {
-	// 	const list = await qlFullList(octokit, userId);
-	// 	const commits = await loadCommits(octokit, list);
-		
-	// 	analysis = await analyzeData(commits);
-	// 	fillTemplate(analysis, null);
-	// } else {
-	// 	const newList = await qlListFrom(octokit, userId, dataStorage.timestamp);
-	// 	const newCommits = await loadCommits(octokit, newList);
-	// 	const newAnalysis = await analyzeData(newCommits);
-
-	// 	analysis = combineData(dataStorage.analysis, newAnalysis);
-	// 	fillTemplate(analysis, newAnalysis);
-	// }
-	
+	fillTemplate(aggregate(combined), aggregate(analysis), linguist);
 	updateStorage(combined);
 };
 
