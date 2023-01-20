@@ -1,26 +1,31 @@
 import { readFileSync, writeFileSync } from "fs";
 import { config } from "./config.js";
 
-export const fillTemplate = (data, delta) => {
-	const total = data.Total;
-	const deltaTotal = delta ? delta.Total : 1;
-	const sorted = sortToArray(data, delta);
+export const fillTemplate = async (combined, delta, linguist) => {
+	const sorted = sortToArray(combined, delta, linguist);
+
+	const combinedTotal = total(combined);
+	const deltaTotal = total(delta);
 	
 	let svg = readFileSync(config.inputFile, { encoding: "utf-8" });
-	svg = replaceBar(svg, sorted, total, deltaTotal);
-	svg = replaceList(svg, sorted, total, deltaTotal);
+	svg = replaceBar(svg, sorted, combinedTotal, deltaTotal);
+	svg = replaceList(svg, sorted, combinedTotal, deltaTotal);
 
 	writeFileSync(config.outputFile, svg, { encoding: "utf-8" });
 };
 
-const sortToArray = (data, delta) => {
-	delete data.Total;
+const total = data => {
+	const values = Object.values(data);
+	return values.reduce((total, next) => total + next, 0);
+};
+
+const sortToArray = (data, delta, linguist) => {
 	const unsortedArr = Object.keys(data).map(lang => {
 		return {
 			name: lang,
-			color: data[lang].color,
-			changes: data[lang].changes,
-			delta: (delta && delta[lang]) ? delta[lang].changes : 0
+			color: linguist[lang].color,
+			changes: data[lang],
+			delta: (delta && delta[lang]) ? delta[lang] : 0
 		};
 	});
 
@@ -51,8 +56,8 @@ const generateFromTemplate = (template, data, total, deltaTotal) => {
 	let half = Math.floor(data.length / 2);
 
 	data.forEach((lang, index) => {
-		let cur = lang.changes / total * 100;
-		let delta = lang.delta / deltaTotal * 100;
+		const cur = lang.changes / total * 100;
+		const delta = deltaTotal ? lang.delta / deltaTotal * 100 : 0;
 		string += template
 			.replaceAll("$prev", prev.toFixed(2))
 			.replaceAll("$cur", cur.toFixed(2))

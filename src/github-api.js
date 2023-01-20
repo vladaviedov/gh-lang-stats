@@ -39,7 +39,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 			id: id,
 			since: timestamp.toString()
 		})).viewer.repositoriesContributedTo;
-		
+
 		// Get all pages of repos
 		let pageInfo = scan.pageInfo;
 		while (pageInfo.hasNextPage) {
