@@ -51,7 +51,7 @@ const analyzeRepo = (repoDetails, lookup) => {
 			if (nameResult) {
 				const choice = chooseResult(nameResult, langs);
 				if (choice) {
-					changes[choice] = changes[choice] ?? 0 + file.changes;
+					changes[choice] = (changes[choice] ?? 0) + file.changes;
 					return;
 				}
 			}
@@ -62,7 +62,7 @@ const analyzeRepo = (repoDetails, lookup) => {
 			if (extResult) {
 				const choice = chooseResult(extResult, langs);
 				if (choice) {
-					changes[choice] = changes[choice] ?? 0 + file.changes;
+					changes[choice] = (changes[choice] ?? 0) + file.changes;
 					return;
 				}
 			}
