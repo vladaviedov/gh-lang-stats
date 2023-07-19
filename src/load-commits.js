@@ -7,6 +7,7 @@ export const loadCommits = async (client, repos) => {
 	const promises = repos.map(async r => {
 		const commits = await repoCommits(client, r);
 		return {
+			repoName: r.owner.login + "/" + r.name,
 			languages: r.languages.nodes,
 			commits: commits
 		};
