@@ -38,7 +38,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 		const scan = (await client.graphql(queryScan, {
 			id: id,
 			since: timestamp.toString()
-		})).viewer.repositoriesContributedTo;
+		})).viewer.repositories;
 
 		// Get all pages of repos
 		let pageInfo = scan.pageInfo;
@@ -47,7 +47,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 				id: id,
 				since: timestamp.toString(),
 				after: pageInfo.endCursor
-			})).viewer.repositoriesContributedTo;
+			})).viewer.repositories;
 			pageInfo = scanNext.pageInfo;
 			scan.nodes = [...scan.nodes, ...scanNext.nodes];
 		}
@@ -132,7 +132,7 @@ export const rawLinguistYml = () => {
 };
 
 const handleHttpErr = err => {
-	if (err.status == 401) {
+	if (err?.status == 401) {
 		console.error("Request is unauthorized.");
 	} else {
 		console.error(err);
@@ -150,10 +150,10 @@ const queryUserId = `{
 
 const queryScan = `query ($id: ID, $since: GitTimestamp) {
 	viewer {
-		repositoriesContributedTo(
+		repositories(
 			first: 100
-			contributionTypes: [COMMIT, PULL_REQUEST]
-			includeUserRepositories: true
+			affiliations: [OWNER, COLLABORATOR]
+			ownerAffiliations: [OWNER, COLLABORATOR]
 		) {
 			totalCount
 			nodes {
@@ -197,10 +197,10 @@ const queryScan = `query ($id: ID, $since: GitTimestamp) {
 
 const queryScanNext = `query ($id: ID, $since: GitTimestamp, $after: String) {
 	viewer {
-		repositoriesContributedTo(
+		repositories(
 			first: 100
-			contributionTypes: [COMMIT, PULL_REQUEST]
-			includeUserRepositories: true
+			affiliations: [OWNER, COLLABORATOR]
+			ownerAffiliations: [OWNER, COLLABORATOR]
 			after: $after
 		) {
 			totalCount
