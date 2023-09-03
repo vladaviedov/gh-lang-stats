@@ -26,7 +26,7 @@ export const isIgnored = (ignoreList, repoName, file) => {
 			return false;
 		}
 
-		return r.repo == repoName
+		return r.repo == repoName;
 	});
 	repoRules.forEach(r => {
 		if (r.dir && checkDirIgnore(r.dir, file)) {
