@@ -9,21 +9,35 @@ export const loadIgnoreList = () => {
 	}
 
 	const file = readFileSync(config.ignoreFile, { encoding: "utf-8" });
+	if (!file) {
+		return null;
+	}
+
 	return YAML.parse(file);
 };
 
 export const isIgnored = (ignoreList, repoName, file) => {
-	const repoRules = ignoreList.filter(r => r.repo == repoName);
+	if (!ignoreList) {
+		return false;
+	}
+
+	const repoRules = ignoreList.filter(r => {
+		if (!r.repo) {
+			return false;
+		}
+
+		return r.repo == repoName
+	});
 	repoRules.forEach(r => {
-		if (r.dir && checkDirIgnore(r, file)) {
+		if (r.dir && checkDirIgnore(r.dir, file)) {
 			return true;
 		}
 
-		if (r.file && checkFileIgnore(r, file)) {
+		if (r.file && checkFileIgnore(r.file, file)) {
 			return true;
 		}
 
-		if (r.exact && checkExactIgnore(r, file)) {
+		if (r.exact && checkExactIgnore(r.exact, file)) {
 			return true;
 		}
 	});
@@ -31,33 +45,26 @@ export const isIgnored = (ignoreList, repoName, file) => {
 	return false;
 };
 
-const checkDirIgnore = (rule, file) => {
-	rule.dir.forEach(dir => {
+const checkDirIgnore = (rules, file) => {
+	return rules.some(dir => {
 		if (file.startsWith(dir)) {
-			console.log(`Hit: ${file}`);
 			return true;
 		}
 	});
-
-	return false;
 };
 
-const checkFileIgnore = (rule, file) => {
-	rule.file.forEach(name => {
+const checkFileIgnore = (rules, file) => {
+	return rules.some(name => {
 		if (basename(file) == name) {
 			return true;
 		}
 	});
-
-	return false;
 };
 
-const checkExactIgnore = (rule, file) => {
-	rule.file.forEach(match => {
+const checkExactIgnore = (rules, file) => {
+	return rules.some(match => {
 		if (file == match) {
 			return true;
 		}
 	});
-
-	return false;
-}
+};
