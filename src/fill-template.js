@@ -57,7 +57,7 @@ const generateFromTemplate = (template, data, total, deltaTotal) => {
 
 	data.forEach((lang, index) => {
 		const cur = lang.changes / total * 100;
-		const delta = deltaTotal ? lang.delta / deltaTotal * 75 + 25 : 0;
+		const delta = deltaTotal && lang.delta ? lang.delta / deltaTotal * 75 + 25 : 0;
 		string += template
 			.replaceAll("$prev", prev.toFixed(2))
 			.replaceAll("$cur", cur.toFixed(2))
