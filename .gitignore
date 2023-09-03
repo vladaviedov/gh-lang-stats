@@ -5,4 +5,5 @@ node_modules/
 .vscode/
 *.svg
 data.json
+ignore.yml
 .env

@@ -1,7 +1,11 @@
+import { isIgnored, loadIgnoreList } from "./ignore.js";
+import { basename } from "path";
+
 export const analyzeData = (detailsList, linguist) => {
 	const lookup = makeLookupObject(linguist);
+	const ignoreList = loadIgnoreList();
 
-	return detailsList.map(r => analyzeRepo(r, lookup)).flat();
+	return detailsList.map(r => analyzeRepo(r, lookup, ignoreList)).flat();
 };
 
 const makeLookupObject = linguist => {
@@ -36,7 +40,7 @@ const makeLookupObject = linguist => {
 	};
 };
 
-const analyzeRepo = (repoDetails, lookup) => {
+const analyzeRepo = (repoDetails, lookup, ignoreList) => {
 	// Possible languages
 	const langs = repoDetails.languages.map(lang => lang.name);
 
@@ -45,8 +49,13 @@ const analyzeRepo = (repoDetails, lookup) => {
 		const changes = {};
 
 		commit.data.files.forEach(file => {
+			// Check for ignores
+			if (isIgnored(ignoreList, repoDetails.repoName, file.filename)) {
+				return;
+			}
+
 			// Specific filename lookup (Makefile, Dockerfile, etc.)
-			const name = file.filename.split("/").pop();
+			const name = basename(file.filename);
 			const nameResult = lookup.filename[name];
 			if (nameResult) {
 				const choice = chooseResult(nameResult, langs);
