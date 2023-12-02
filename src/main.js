@@ -46,7 +46,7 @@ const main = async () => {
 	// Process commits
 	const commits = await loadCommits(octokit, list);
 	const analysis = await analyzeData(commits, linguist);
-	const combined = dataStorage ?
+	let combined = dataStorage ?
 		[...dataStorage.analysis, ...analysis] :
 		analysis;
 
@@ -54,10 +54,10 @@ const main = async () => {
 	const now = new Date();
 	let nextPurge = dataStorage ?
 		dataStorage.nextPurge :
-		new Date().setDate(now.getDate() + 30);
+		new Date().setDate(now.getDate() + 28);
 
-	if (dataStorage && dataStorage.nextPurge < now.valueOf()) {
-		purge(combined, await qlFullList(octokit, userId))
+	if (dataStorage && dataStorage.nextPurge < now) {
+		combined = purge(combined, await qlFullList(octokit, userId));
 		nextPurge = new Date().setDate(now.getDate() + 28);
 	}
 
