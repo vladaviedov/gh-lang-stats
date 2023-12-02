@@ -12,12 +12,12 @@ export const retrieveStorage = () => {
 	return JSON.parse(rawData);
 };
 
-export const updateStorage = (data, nextPurge) => {
+export const updateStorage = (data, nextCheck) => {
 	// Wrapper to store metadata
 	const dataStorage = {
 		analysis: data,
 		timestamp: new Date().toISOString(),
-		nextPurge: nextPurge
+		nextCheck: nextCheck
 	};
 
 	// Write to store
