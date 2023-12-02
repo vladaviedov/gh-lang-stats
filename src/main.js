@@ -7,7 +7,7 @@ import { qlUserId, qlFullList, qlListFrom, rawLinguistYml } from "./github-api.j
 import { loadCommits } from "./load-commits.js";
 import { config } from "./config.js";
 import { retrieveStorage, updateStorage } from "./cache.js";
-import { purge } from "./purger.js";
+import { runPurger } from "./purger.js";
 
 const OctokitPlug = Octokit.plugin(throttling);
 const octokit = new OctokitPlug({
@@ -46,23 +46,17 @@ const main = async () => {
 	// Process commits
 	const commits = await loadCommits(octokit, list);
 	const analysis = await analyzeData(commits, linguist);
-	let combined = dataStorage ?
+	const combined = dataStorage ?
 		[...dataStorage.analysis, ...analysis] :
 		analysis;
 
-	// Run purge once in a while
-	const now = new Date();
-	let nextPurge = dataStorage ?
-		dataStorage.nextPurge :
-		new Date().setDate(now.getDate() + 28);
+	// Check for purge
+	const { data: finalData, nextPurge } = dataStorage ?
+		runPurger(combined, await qlFullList(octokit, userId), dataStorage.nextPurge) :
+		runPurger(combined, await qlFullList(octokit, userId));
 
-	if (dataStorage && dataStorage.nextPurge < now) {
-		combined = purge(combined, await qlFullList(octokit, userId));
-		nextPurge = new Date().setDate(now.getDate() + 28);
-	}
-
-	fillTemplate(aggregate(combined), aggregate(analysis), linguist);
-	updateStorage(combined, nextPurge);
+	fillTemplate(aggregate(finalData), aggregate(analysis), linguist);
+	updateStorage(finalData, nextPurge);
 };
 
 main();
