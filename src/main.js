@@ -7,6 +7,7 @@ import { qlUserId, qlFullList, qlListFrom, rawLinguistYml } from "./github-api.j
 import { loadCommits } from "./load-commits.js";
 import { config } from "./config.js";
 import { retrieveStorage, updateStorage } from "./cache.js";
+import { purge } from "./purger.js";
 
 const OctokitPlug = Octokit.plugin(throttling);
 const octokit = new OctokitPlug({
@@ -49,8 +50,19 @@ const main = async () => {
 		[...dataStorage.analysis, ...analysis] :
 		analysis;
 
+	// Run purge once in a while
+	const now = new Date();
+	let nextPurge = dataStorage ?
+		dataStorage.nextPurge :
+		new Date().setDate(now.getDate() + 30);
+
+	if (dataStorage && dataStorage.nextPurge < now.valueOf()) {
+		purge(combined, await qlFullList(octokit, userId))
+		nextPurge = new Date().setDate(now.getDate() + 28);
+	}
+
 	fillTemplate(aggregate(combined), aggregate(analysis), linguist);
-	updateStorage(combined);
+	updateStorage(combined, nextPurge);
 };
 
 main();
