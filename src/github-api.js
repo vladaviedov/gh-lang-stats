@@ -68,7 +68,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 				pageInfo2 = commitsNext.pageInfo;
 				commits.nodes = [...commits.nodes, ...commitsNext.nodes];
 			}
-			
+
 			// Get all pages on lnaguages
 			// I don't think this can even trigger
 			pageInfo2 = langs.pageInfo;
@@ -84,7 +84,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 
 			return r;
 		}));
-		
+
 		return scan.nodes;
 	} catch (ex) {
 		handleHttpErr(ex.response);
@@ -143,101 +143,54 @@ const handleHttpErr = err => {
 };
 
 /* GraphQL Requests */
-	
+
 const queryUserId = `{
 	viewer { id }
 }`;
 
-const queryScan = `query ($id: ID, $since: GitTimestamp) {
-	viewer {
-		repositories(
-			first: 100
-			affiliations: [OWNER, COLLABORATOR]
-			ownerAffiliations: [OWNER, COLLABORATOR]
-		) {
-			totalCount
-			nodes {
-				name
-				owner { login }
-				defaultBranchRef {
-					target {
-						... on Commit {
-							history(
-								first: 100,
-								author: {id: $id},
-								since: $since
-							) {
-								nodes { oid }
-								pageInfo {
-									endCursor
-									hasNextPage
-								}
-							}
-						}
-					}
-				}
-				languages(first: 100) {
-					nodes {
-						name
-						color
-					}
-					pageInfo {
-						endCursor
-						hasNextPage
-					}
-				}
-			}
-			pageInfo {
-				endCursor
-				hasNextPage
-			}
-		}
-	}
+const queryContribYears = `{
+	viewer { contributionsCollection { contributionYears } }
 }`;
 
-const queryScanNext = `query ($id: ID, $since: GitTimestamp, $after: String) {
+const queryContribCollection = `query ($start: GitTimestamp, $end: GitTimestamp) {
 	viewer {
-		repositories(
-			first: 100
-			affiliations: [OWNER, COLLABORATOR]
-			ownerAffiliations: [OWNER, COLLABORATOR]
-			after: $after
+		contributionsCollection(
+			from: $start,
+			to: $end
 		) {
-			totalCount
-			nodes {
-				name
-				owner { login }
-				defaultBranchRef {
-					target {
-						... on Commit {
-							history(
-								first: 100,
-								since: $since,
-								author: {id: $id}
-							) {
-								nodes { oid }
-								pageInfo {
-									endCursor
-									hasNextPage
+			totalRepositoriesWithContributedCommits
+			commitContributionsByRepository(maxRepositories: 100) {
+				repository {
+					owner { login }
+					name
+					defaultBranchRef {
+						target {
+							... on Commit {
+								history(
+									first: 100,
+									author: {id: $id},
+									since: $since
+								) {
+									nodes { oid }
+									pageInfo {
+										endCursor
+										hasNextPage
+									}
 								}
 							}
 						}
 					}
-				}
-				languages(first: 100) {
-					nodes {
-						name
-						color
+					languages(first: 100) {
+						nodes {
+							name
+							color
+						}
+						pageInfo {
+							endCursor
+							hasNextPage
+						}
 					}
-					pageInfo {
-						endCursor
-						hasNextPage
-					}
 				}
-			}
-			pageInfo {
-				endCursor
-				hasNextPage
 			}
 		}
 	}
