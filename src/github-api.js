@@ -42,21 +42,16 @@ export const qlListFrom = async (client, id, timestamp) => {
 			curStart = timestamp;
 		}
 
-		console.log(curStart, " and ", curEnd);
 		const response = await queryRange(client, id, curStart, curEnd);
 		if (response === null) {
 
 		}
 
 		data = [...data, ...response];
-		console.log(data.length);
 		curEnd = curStart;
 		curStart = yearBefore(curStart);
 	}
 
-	console.log(data.length);
-	console.log(data);
-	process.exit(0);
 	return data;
 }
 
