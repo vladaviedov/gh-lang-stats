@@ -33,6 +33,8 @@ export const qlFullList = async (client, id) => {
  * @returns Array of repositories with commits
  */
 export const qlListFrom = async (client, id, timestamp) => {
+	withinSingleQuery(timestamp);
+
 	try {
 		// Initial scan
 		const scan = (await client.graphql(queryScan, {
@@ -131,6 +133,17 @@ export const rawLinguistYml = () => {
 	}));
 };
 
+/**
+ * Check if query can be completed in a single GraphQL request.
+ *
+ * @param {in} ts - Earliest timestamp.
+ * @returns Boolean result.
+ */
+const withinSingleQuery = ts => {
+	const lowest = new Date(ts).setFullYear(ts.getFullYear());
+	console.log(lowest);
+};
+
 const handleHttpErr = err => {
 	if (err?.status == 401) {
 		console.error("Request is unauthorized.");
@@ -152,7 +165,7 @@ const queryContribYears = `{
 	viewer { contributionsCollection { contributionYears } }
 }`;
 
-const queryContribCollection = `query ($start: GitTimestamp, $end: GitTimestamp) {
+const queryContribCollection = `query ($id: ID, $start: GitTimestamp, $end: GitTimestamp) {
 	viewer {
 		contributionsCollection(
 			from: $start,
@@ -168,8 +181,8 @@ const queryContribCollection = `query ($start: GitTimestamp, $end: GitTimestamp)
 							... on Commit {
 								history(
 									first: 100,
-									author: {id: $id},
-									since: $since
+									author: { id: $id },
+									since: $start
 								) {
 									nodes { oid }
 									pageInfo {
@@ -201,7 +214,7 @@ const queryMoreCommits = `query ($name: String!, $owner: String!, $id: ID, $afte
 		defaultBranchRef {
 			target {
 				... on Commit {
-					history(first: 100, author: {id: $id}, after: $after) {
+					history(first: 100, author: { id: $id }, after: $after) {
 						nodes { oid }
 						pageInfo {
 							endCursor
