@@ -33,61 +33,98 @@ export const qlFullList = async (client, id) => {
  * @returns Array of repositories with commits
  */
 export const qlListFrom = async (client, id, timestamp) => {
-	withinSingleQuery(timestamp);
+	let data = [];
 
-	try {
-		// Initial scan
-		const scan = (await client.graphql(queryScan, {
-			id: id,
-			since: timestamp.toString()
-		})).viewer.repositories;
-
-		// Get all pages of repos
-		let pageInfo = scan.pageInfo;
-		while (pageInfo.hasNextPage) {
-			const scanNext = (await client.graphql(queryScanNext, {
-				id: id,
-				since: timestamp.toString(),
-				after: pageInfo.endCursor
-			})).viewer.repositories;
-			pageInfo = scanNext.pageInfo;
-			scan.nodes = [...scan.nodes, ...scanNext.nodes];
+	let curEnd = new Date();
+	let curStart = yearBefore(curEnd);
+	while (timestamp < curEnd) {
+		if (timestamp >= curStart) {
+			curStart = timestamp;
 		}
 
-		scan.nodes = await Promise.all(scan.nodes.map(async r => {
+		console.log(curStart, " and ", curEnd);
+		const response = await queryRange(client, id, curStart, curEnd);
+		if (response === null) {
+
+		}
+
+		data = [...data, ...response];
+		console.log(data.length);
+		curEnd = curStart;
+		curStart = yearBefore(curStart);
+	}
+
+	console.log(data.length);
+	console.log(data);
+	process.exit(0);
+	return data;
+}
+
+/**
+ * Query a contribution collection for a certain range (maximum: 1 year).
+ *
+ * @async
+ * @param {Octokit} client - Octokit client.
+ * @param {string} id - User ID.
+ * @param {Date} start - Start timestamp.
+ * @param {Date} end - End timestamp.
+ * @returns Data from the range; null if too many repos.
+ */
+const queryRange = async (client, id, start, end) => {
+	try {
+		// Query all repositories in this time range
+		const collection = (await client.graphql(queryContribCollection, {
+			id: id,
+			start: start.toISOString(),
+			end: end.toISOString(),
+			start: start.toISOString()
+		})).viewer.contributionsCollection;
+
+		// We can only look at 100 repos with no paging
+		// Thanks github
+		if (collection.totalRepositoriesWithContributedCommits > 100) {
+			return null;
+		}
+
+		// Repos list
+		const scan = collection.commitContributionsByRepository;
+
+		// Fetch missed data inside repos
+		const repos = await Promise.all(scan.map(async r => {
+			r = r.repository;
 			const commits = r.defaultBranchRef.target.history;
 			const langs = r.languages;
 
 			// Get all pages of commits
-			let pageInfo2 = commits.pageInfo;
-			while (pageInfo2.hasNextPage) {
+			let pageInfo = commits.pageInfo;
+			while (pageInfo.hasNextPage) {
 				const commitsNext = (await client.graphql(queryMoreCommits, {
 					name: r.name, 
 					owner: r.owner.login,
 					id: id,
-					after: pageInfo2.endCursor
+					after: pageInfo.endCursor
 				})).repository.defaultBranchRef.target.history;
-				pageInfo2 = commitsNext.pageInfo;
+				pageInfo = commitsNext.pageInfo;
 				commits.nodes = [...commits.nodes, ...commitsNext.nodes];
 			}
 
-			// Get all pages on lnaguages
+			// Get all pages on languages
 			// I don't think this can even trigger
-			pageInfo2 = langs.pageInfo;
-			while (pageInfo2.hasNextPage) {
+			pageInfo = langs.pageInfo;
+			while (pageInfo.hasNextPage) {
 				const langsNext = (await client.graphql(queryMoreLangs, {
 					name: r.name,
 					owner: r.owner.login,
-					after: pageInfo2.endCursor
+					after: pageInfo.endCursor
 				})).repository.languages;
-				pageInfo2 = langsNext.pageInfo;
+				pageInfo = langsNext.pageInfo;
 				langs.nodes = [...langs.nodes, ...langsNext.nodes];
 			}
 
 			return r;
 		}));
 
-		return scan.nodes;
+		return repos;
 	} catch (ex) {
 		handleHttpErr(ex.response);
 	}
@@ -134,14 +171,15 @@ export const rawLinguistYml = () => {
 };
 
 /**
- * Check if query can be completed in a single GraphQL request.
+ * Calculate the timestamp of one year before a date
  *
- * @param {in} ts - Earliest timestamp.
- * @returns Boolean result.
+ * @param {Date} date - Date input.
+ * @returns {Date} Date for one year before 'date'
  */
-const withinSingleQuery = ts => {
-	const lowest = new Date(ts).setFullYear(ts.getFullYear());
-	console.log(lowest);
+const yearBefore = date => {
+	const yearAgo = new Date(date);
+	yearAgo.setFullYear(date.getFullYear() - 1);
+	return yearAgo;
 };
 
 const handleHttpErr = err => {
@@ -165,7 +203,7 @@ const queryContribYears = `{
 	viewer { contributionsCollection { contributionYears } }
 }`;
 
-const queryContribCollection = `query ($id: ID, $start: GitTimestamp, $end: GitTimestamp) {
+const queryContribCollection = `query ($id: ID, $start: DateTime, $end: DateTime, $since: GitTimestamp) {
 	viewer {
 		contributionsCollection(
 			from: $start,
@@ -182,7 +220,7 @@ const queryContribCollection = `query ($id: ID, $start: GitTimestamp, $end: GitT
 								history(
 									first: 100,
 									author: { id: $id },
-									since: $start
+									since: $since
 								) {
 									nodes { oid }
 									pageInfo {

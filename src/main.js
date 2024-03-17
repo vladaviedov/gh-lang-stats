@@ -40,7 +40,7 @@ const main = async () => {
 	// Check storage
 	const dataStorage = retrieveStorage();
 	const list = dataStorage ?
-		await qlListFrom(octokit, userId, dataStorage.timestamp) :
+		await qlListFrom(octokit, userId, new Date(dataStorage.timestamp)) :
 		await qlFullList(octokit, userId);
 
 	// Process commits
