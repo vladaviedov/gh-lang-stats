@@ -22,7 +22,21 @@ export const qlUserId = async client => {
  * @returns Array of repositories with commits
  */
 export const qlFullList = async (client, id) => {
-	return qlListFrom(client, id, new Date(0).toISOString());
+	// Get data from each year contributed
+	const yearsContributed = (await client.graphql(queryContribYears))
+		.viewer.contributionsCollection.contributionYears;
+	const data = await Promise.all(yearsContributed.map(async year => {
+		const start = new Date(year, 0);
+		const end = new Date(year + 1, 0);
+		const query = await queryRange(client, id, start, end);
+		if (query === null) {
+			// TODO: split time range
+		}
+
+		return query;
+	}));
+	
+	return data.flat();
 };
 
 /**
@@ -44,7 +58,7 @@ export const qlListFrom = async (client, id, timestamp) => {
 
 		const response = await queryRange(client, id, curStart, curEnd);
 		if (response === null) {
-
+			// TODO: split time range
 		}
 
 		data = [...data, ...response];
