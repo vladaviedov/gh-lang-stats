@@ -28,14 +28,14 @@ export const qlFullList = async (client, id) => {
 	const data = await Promise.all(yearsContributed.map(async year => {
 		const start = new Date(year, 0);
 		const end = new Date(year + 1, 0);
-		const query = await queryRange(client, id, start, end);
-		if (query === null) {
-			// TODO: split time range
-		}
-
-		return query;
+		return queryRange(client, id, start, end);
 	}));
 	
+	console.log(data.flat().reduce((acc, x) => {
+		console.log(x.defaultBranchRef.target.history.nodes)
+		return acc += x.defaultBranchRef.target.history.nodes.length;
+	}, 0))
+	process.exit(0);
 	return data.flat();
 };
 
@@ -57,15 +57,15 @@ export const qlListFrom = async (client, id, timestamp) => {
 		}
 
 		const response = await queryRange(client, id, curStart, curEnd);
-		if (response === null) {
-			// TODO: split time range
-		}
-
 		data = [...data, ...response];
 		curEnd = curStart;
 		curStart = yearBefore(curStart);
 	}
 
+	console.log(data.reduce((acc, x) => {
+		return acc += x.defaultBranchRef.target.history.count.length;
+	}, 0))
+	process.exit(0);
 	return data;
 }
 
@@ -77,7 +77,7 @@ export const qlListFrom = async (client, id, timestamp) => {
  * @param {string} id - User ID.
  * @param {Date} start - Start timestamp.
  * @param {Date} end - End timestamp.
- * @returns Data from the range; null if too many repos.
+ * @returns Data from the range.
  */
 const queryRange = async (client, id, start, end) => {
 	try {
@@ -91,8 +91,15 @@ const queryRange = async (client, id, start, end) => {
 
 		// We can only look at 100 repos with no paging
 		// Thanks github
-		if (collection.totalRepositoriesWithContributedCommits > 100) {
-			return null;
+		// Split time range recursively, since we don't have any more info at this point
+		if (collection.totalRepositoriesWithContributedCommits > 20) {
+			const half = new Date(start.getTime() + (end.getTime() - start.getTime()) / 2);
+
+			const bottom = queryRange(client, id, start, half);
+			const top = queryRange(client, id, half, end);
+			const results = await Promise.all([bottom, top]);
+
+			return results.flat();
 		}
 
 		// Repos list
