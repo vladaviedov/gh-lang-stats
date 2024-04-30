@@ -31,11 +31,6 @@ export const qlFullList = async (client, id) => {
 		return queryRange(client, id, start, end);
 	}));
 	
-	// console.log(data.flat().reduce((acc, x) => {
-	// 	console.log(x.defaultBranchRef.target.history.nodes)
-	// 	return acc += x.defaultBranchRef.target.history.nodes.length;
-	// }, 0))
-	process.exit(0);
 	return data.flat();
 };
 
@@ -62,12 +57,8 @@ export const qlListFrom = async (client, id, timestamp) => {
 		curStart = yearBefore(curStart);
 	}
 
-	console.log(data.reduce((acc, x) => {
-		return acc += x.defaultBranchRef.target.history.count.length;
-	}, 0))
-	process.exit(0);
 	return data;
-}
+};
 
 /**
  * Query a contribution collection for a certain range (maximum: 1 year).
@@ -93,8 +84,7 @@ const queryRange = async (client, id, start, end) => {
 		// We can only look at 100 repos with no paging
 		// Thanks github
 		// Split time range recursively, since we don't have any more info at this point
-		// TODO: 20 -> 100
-		if (collection.totalRepositoriesWithContributedCommits > 20) {
+		if (collection.totalRepositoriesWithContributedCommits > 100) {
 			const half = new Date(start.getTime() + (end.getTime() - start.getTime()) / 2);
 
 			const bottom = queryRange(client, id, start, half);
