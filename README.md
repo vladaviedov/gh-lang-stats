@@ -9,4 +9,3 @@ Check out the [template repo](https://github.com/vladaviedov/ghls-template)
 - Delta config
 - Documentation
 - More templates
-- Deleted commit check
