@@ -22,7 +22,16 @@ export const qlUserId = async client => {
  * @returns Array of repositories with commits
  */
 export const qlFullList = async (client, id) => {
-	return qlListFrom(client, id, new Date(0).toISOString());
+	// Get data from each year contributed
+	const yearsContributed = (await client.graphql(queryContribYears))
+		.viewer.contributionsCollection.contributionYears;
+	const data = await Promise.all(yearsContributed.map(async year => {
+		const start = new Date(year, 0);
+		const end = new Date(year + 1, 0);
+		return queryRange(client, id, start, end);
+	}));
+	
+	return data.flat();
 };
 
 /**
@@ -33,59 +42,99 @@ export const qlFullList = async (client, id) => {
  * @returns Array of repositories with commits
  */
 export const qlListFrom = async (client, id, timestamp) => {
-	try {
-		// Initial scan
-		const scan = (await client.graphql(queryScan, {
-			id: id,
-			since: timestamp.toString()
-		})).viewer.repositories;
+	let data = [];
 
-		// Get all pages of repos
-		let pageInfo = scan.pageInfo;
-		while (pageInfo.hasNextPage) {
-			const scanNext = (await client.graphql(queryScanNext, {
-				id: id,
-				since: timestamp.toString(),
-				after: pageInfo.endCursor
-			})).viewer.repositories;
-			pageInfo = scanNext.pageInfo;
-			scan.nodes = [...scan.nodes, ...scanNext.nodes];
+	let curEnd = new Date();
+	let curStart = yearBefore(curEnd);
+	while (timestamp < curEnd) {
+		if (timestamp >= curStart) {
+			curStart = timestamp;
 		}
 
-		scan.nodes = await Promise.all(scan.nodes.map(async r => {
+		const response = await queryRange(client, id, curStart, curEnd);
+		data = [...data, ...response];
+		curEnd = curStart;
+		curStart = yearBefore(curStart);
+	}
+
+	return data;
+};
+
+/**
+ * Query a contribution collection for a certain range (maximum: 1 year).
+ *
+ * @async
+ * @param {Octokit} client - Octokit client.
+ * @param {string} id - User ID.
+ * @param {Date} start - Start timestamp.
+ * @param {Date} end - End timestamp.
+ * @returns Data from the range.
+ */
+const queryRange = async (client, id, start, end) => {
+	try {
+		// Query all repositories in this time range
+		const collection = (await client.graphql(queryContribCollection, {
+			id: id,
+			start: start.toISOString(),
+			end: end.toISOString(),
+			since: start.toISOString(),
+			until: end.toISOString()
+		})).viewer.contributionsCollection;
+
+		// We can only look at 100 repos with no paging
+		// Thanks github
+		// Split time range recursively, since we don't have any more info at this point
+		if (collection.totalRepositoriesWithContributedCommits > 100) {
+			const half = new Date(start.getTime() + (end.getTime() - start.getTime()) / 2);
+
+			const bottom = queryRange(client, id, start, half);
+			const top = queryRange(client, id, half, end);
+			const results = await Promise.all([bottom, top]);
+
+			return results.flat();
+		}
+
+		// Repos list
+		const scan = collection.commitContributionsByRepository;
+
+		// Fetch missed data inside repos
+		const repos = await Promise.all(scan.map(async r => {
+			r = r.repository;
 			const commits = r.defaultBranchRef.target.history;
 			const langs = r.languages;
 
 			// Get all pages of commits
-			let pageInfo2 = commits.pageInfo;
-			while (pageInfo2.hasNextPage) {
+			let pageInfo = commits.pageInfo;
+			while (pageInfo.hasNextPage) {
 				const commitsNext = (await client.graphql(queryMoreCommits, {
 					name: r.name, 
 					owner: r.owner.login,
 					id: id,
-					after: pageInfo2.endCursor
+					after: pageInfo.endCursor,
+					since: start.toISOString(),
+					until: end.toISOString()
 				})).repository.defaultBranchRef.target.history;
-				pageInfo2 = commitsNext.pageInfo;
+				pageInfo = commitsNext.pageInfo;
 				commits.nodes = [...commits.nodes, ...commitsNext.nodes];
 			}
-			
-			// Get all pages on lnaguages
+
+			// Get all pages on languages
 			// I don't think this can even trigger
-			pageInfo2 = langs.pageInfo;
-			while (pageInfo2.hasNextPage) {
+			pageInfo = langs.pageInfo;
+			while (pageInfo.hasNextPage) {
 				const langsNext = (await client.graphql(queryMoreLangs, {
 					name: r.name,
 					owner: r.owner.login,
-					after: pageInfo2.endCursor
+					after: pageInfo.endCursor
 				})).repository.languages;
-				pageInfo2 = langsNext.pageInfo;
+				pageInfo = langsNext.pageInfo;
 				langs.nodes = [...langs.nodes, ...langsNext.nodes];
 			}
 
 			return r;
 		}));
-		
-		return scan.nodes;
+
+		return repos;
 	} catch (ex) {
 		handleHttpErr(ex.response);
 	}
@@ -131,6 +180,18 @@ export const rawLinguistYml = () => {
 	}));
 };
 
+/**
+ * Calculate the timestamp of one year before a date
+ *
+ * @param {Date} date - Date input.
+ * @returns {Date} Date for one year before 'date'
+ */
+const yearBefore = date => {
+	const yearAgo = new Date(date);
+	yearAgo.setFullYear(date.getFullYear() - 1);
+	return yearAgo;
+};
+
 const handleHttpErr = err => {
 	if (err?.status == 401) {
 		console.error("Request is unauthorized.");
@@ -143,112 +204,85 @@ const handleHttpErr = err => {
 };
 
 /* GraphQL Requests */
-	
+
 const queryUserId = `{
 	viewer { id }
 }`;
 
-const queryScan = `query ($id: ID, $since: GitTimestamp) {
+const queryContribYears = `{
+	viewer { contributionsCollection { contributionYears } }
+}`;
+
+const queryContribCollection = `query (
+		$id: ID,
+		$start: DateTime,
+		$end: DateTime,
+		$since: GitTimestamp,
+		$until: GitTimestamp
+) {
 	viewer {
-		repositories(
-			first: 100
-			affiliations: [OWNER, COLLABORATOR]
-			ownerAffiliations: [OWNER, COLLABORATOR]
+		contributionsCollection(
+			from: $start,
+			to: $end
 		) {
-			totalCount
-			nodes {
-				name
-				owner { login }
-				defaultBranchRef {
-					target {
-						... on Commit {
-							history(
-								first: 100,
-								author: {id: $id},
-								since: $since
-							) {
-								nodes { oid }
-								pageInfo {
-									endCursor
-									hasNextPage
+			totalRepositoriesWithContributedCommits
+			commitContributionsByRepository(maxRepositories: 100) {
+				repository {
+					owner { login }
+					name
+					defaultBranchRef {
+						target {
+							... on Commit {
+								history(
+									first: 100,
+									author: { id: $id },
+									since: $since,
+									until: $until
+								) {
+									nodes { oid }
+									pageInfo {
+										endCursor
+										hasNextPage
+									}
 								}
 							}
 						}
 					}
-				}
-				languages(first: 100) {
-					nodes {
-						name
-						color
+					languages(first: 100) {
+						nodes {
+							name
+							color
+						}
+						pageInfo {
+							endCursor
+							hasNextPage
+						}
 					}
-					pageInfo {
-						endCursor
-						hasNextPage
-					}
 				}
-			}
-			pageInfo {
-				endCursor
-				hasNextPage
 			}
 		}
 	}
 }`;
 
-const queryScanNext = `query ($id: ID, $since: GitTimestamp, $after: String) {
-	viewer {
-		repositories(
-			first: 100
-			affiliations: [OWNER, COLLABORATOR]
-			ownerAffiliations: [OWNER, COLLABORATOR]
-			after: $after
-		) {
-			totalCount
-			nodes {
-				name
-				owner { login }
-				defaultBranchRef {
-					target {
-						... on Commit {
-							history(
-								first: 100,
-								since: $since,
-								author: {id: $id}
-							) {
-								nodes { oid }
-								pageInfo {
-									endCursor
-									hasNextPage
-								}
-							}
-						}
-					}
-				}
-				languages(first: 100) {
-					nodes {
-						name
-						color
-					}
-					pageInfo {
-						endCursor
-						hasNextPage
-					}
-				}
-			}
-			pageInfo {
-				endCursor
-				hasNextPage
-			}
-		}
-	}
-}`;
-
-const queryMoreCommits = `query ($name: String!, $owner: String!, $id: ID, $after: String) {
+const queryMoreCommits = `query (
+		$name: String!,
+		$owner: String!,
+		$id: ID,
+		$after: String,
+		$since: GitTimestamp,
+		$until: GitTimestamp
+) {
 	repository(name: $name, owner: $owner) {
 		defaultBranchRef {
 			target {
 				... on Commit {
-					history(first: 100, author: {id: $id}, after: $after) {
+					history(
+						first: 100,
+						author: { id: $id },
+						after: $after,
+						since: $since,
+						until: $until
+					) {
 						nodes { oid }
 						pageInfo {
 							endCursor

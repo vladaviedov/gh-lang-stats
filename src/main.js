@@ -40,11 +40,15 @@ const main = async () => {
 	// Check storage
 	const dataStorage = retrieveStorage();
 	const list = dataStorage ?
-		await qlListFrom(octokit, userId, dataStorage.timestamp) :
+		await qlListFrom(octokit, userId, new Date(dataStorage.timestamp)) :
 		await qlFullList(octokit, userId);
 
-	// Process commits
+	// Fetch commit info
 	const commits = await loadCommits(octokit, list);
+	const newCommitCount = commits.reduce((acc, repo) => acc + repo.commits.length, 0);
+	console.log(`${newCommitCount} commits added`);
+
+	// Process commits
 	const analysis = await analyzeData(commits, linguist);
 	const combined = dataStorage ?
 		[...dataStorage.analysis, ...analysis] :
