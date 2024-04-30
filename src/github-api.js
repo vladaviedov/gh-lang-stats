@@ -31,10 +31,10 @@ export const qlFullList = async (client, id) => {
 		return queryRange(client, id, start, end);
 	}));
 	
-	console.log(data.flat().reduce((acc, x) => {
-		console.log(x.defaultBranchRef.target.history.nodes)
-		return acc += x.defaultBranchRef.target.history.nodes.length;
-	}, 0))
+	// console.log(data.flat().reduce((acc, x) => {
+	// 	console.log(x.defaultBranchRef.target.history.nodes)
+	// 	return acc += x.defaultBranchRef.target.history.nodes.length;
+	// }, 0))
 	process.exit(0);
 	return data.flat();
 };
@@ -86,12 +86,14 @@ const queryRange = async (client, id, start, end) => {
 			id: id,
 			start: start.toISOString(),
 			end: end.toISOString(),
-			start: start.toISOString()
+			since: start.toISOString(),
+			until: end.toISOString()
 		})).viewer.contributionsCollection;
 
 		// We can only look at 100 repos with no paging
 		// Thanks github
 		// Split time range recursively, since we don't have any more info at this point
+		// TODO: 20 -> 100
 		if (collection.totalRepositoriesWithContributedCommits > 20) {
 			const half = new Date(start.getTime() + (end.getTime() - start.getTime()) / 2);
 
@@ -118,7 +120,9 @@ const queryRange = async (client, id, start, end) => {
 					name: r.name, 
 					owner: r.owner.login,
 					id: id,
-					after: pageInfo.endCursor
+					after: pageInfo.endCursor,
+					since: start.toISOString(),
+					until: end.toISOString()
 				})).repository.defaultBranchRef.target.history;
 				pageInfo = commitsNext.pageInfo;
 				commits.nodes = [...commits.nodes, ...commitsNext.nodes];
@@ -219,7 +223,13 @@ const queryContribYears = `{
 	viewer { contributionsCollection { contributionYears } }
 }`;
 
-const queryContribCollection = `query ($id: ID, $start: DateTime, $end: DateTime, $since: GitTimestamp) {
+const queryContribCollection = `query (
+		$id: ID,
+		$start: DateTime,
+		$end: DateTime,
+		$since: GitTimestamp,
+		$until: GitTimestamp
+) {
 	viewer {
 		contributionsCollection(
 			from: $start,
@@ -236,7 +246,8 @@ const queryContribCollection = `query ($id: ID, $start: DateTime, $end: DateTime
 								history(
 									first: 100,
 									author: { id: $id },
-									since: $since
+									since: $since,
+									until: $until
 								) {
 									nodes { oid }
 									pageInfo {
@@ -263,12 +274,25 @@ const queryContribCollection = `query ($id: ID, $start: DateTime, $end: DateTime
 	}
 }`;
 
-const queryMoreCommits = `query ($name: String!, $owner: String!, $id: ID, $after: String) {
+const queryMoreCommits = `query (
+		$name: String!,
+		$owner: String!,
+		$id: ID,
+		$after: String,
+		$since: GitTimestamp,
+		$until: GitTimestamp
+) {
 	repository(name: $name, owner: $owner) {
 		defaultBranchRef {
 			target {
 				... on Commit {
-					history(first: 100, author: { id: $id }, after: $after) {
+					history(
+						first: 100,
+						author: { id: $id },
+						after: $after,
+						since: $since,
+						until: $until
+					) {
 						nodes { oid }
 						pageInfo {
 							endCursor
