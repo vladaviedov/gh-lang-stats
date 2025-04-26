@@ -1,6 +1,6 @@
 {
   "name": "@vladaviedov/gh-lang-stats",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Github Lang Stats",
   "homepage": "https://github.com/vladaviedov/gh-lang-stats",
   "bugs": "https://github.com/vladaviedov/gh-lang-stats/issues",
@@ -25,12 +25,12 @@
     "lint": "eslint src"
   },
   "devDependencies": {
-    "eslint": "^9.1.1"
+    "eslint": "^9.25.1"
   },
   "dependencies": {
-    "@octokit/core": "^6.1.2",
-    "@octokit/plugin-throttling": "^9.3.0",
-    "octokit": "^3.0.0",
+    "@octokit/core": "^6.1.5",
+    "@octokit/plugin-throttling": "^9.6.1",
+    "octokit": "^3.2.1",
     "yaml": "^2.3.1"
   }
 }
